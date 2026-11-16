@@ -76,10 +76,10 @@ scripts/shot.sh welcome - dark en                                 # a screenshot
 
 ## Release
 
-A Developer ID build overrides the local signing: `CODE_SIGNING_ALLOWED=YES OA_ADHOC_SIGN=NO CODE_SIGN_STYLE=Manual
-CODE_SIGN_IDENTITY="Developer ID Application" DEVELOPMENT_TEAM=47QC6LXXDZ PROVISIONING_PROFILE_SPECIFIER=<a Developer ID
-profile with the app group and keychain group>`, then `notarytool` and a DMG. This is not automated yet; certificates
-and notarization credentials never enter the repository.
+`PROFILE="<profile name>" scripts/release.sh` builds with Developer ID instead of the local signing, then signs,
+notarizes and staples a DMG with its SHA-256 in `build/dist`. The script's header lists what the releasing Mac needs
+once: the Developer ID Application certificate, a Developer ID provisioning profile with the app group and keychain
+group, and a `notarytool` keychain profile. Certificates and notarization credentials never enter the repository.
 
 ## Shared connections and links
 

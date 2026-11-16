@@ -2,7 +2,7 @@
 
 The app follows [semantic versioning](https://semver.org). The version is `MARKETING_VERSION` in `project.yml`.
 
-## 0.1.0 (unreleased)
+## 0.1.0 (2026-11-17)
 
 First release as an OpenAsy app, with a fresh history.
 

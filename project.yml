@@ -72,6 +72,9 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_IDENTITY: "-"
+        # Only this target takes a profile (scripts/release.sh sets OA_PROFILE): set on the command line,
+        # PROVISIONING_PROFILE_SPECIFIER would reach the Swift packages too, and they refuse one.
+        PROVISIONING_PROFILE_SPECIFIER: $(OA_PROFILE)
         COMBINE_HIDPI_IMAGES: YES
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
         INFOPLIST_KEY_NSHumanReadableCopyright: "OpenAsy, AGPL-3.0"
