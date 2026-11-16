@@ -1,0 +1,147 @@
+# OpenAsy Database Client (native macOS), generated into an Xcode project with XcodeGen: `xcodegen generate`.
+# The version is MARKETING_VERSION here and in CHANGELOG.md; CURRENT_PROJECT_VERSION is the build number.
+name: DatabaseClient
+options:
+  bundleIdPrefix: com.openasy
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+packages:
+  OpenAsyMacKit:
+    path: ../macos-kit
+settings:
+  base:
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+    DEVELOPMENT_TEAM: ""
+    ENABLE_HARDENED_RUNTIME: YES
+    # The connection list shared with OpenAsy Schema: app group = keychain access group. On macOS a group id starts
+    # with the team id. The debug build uses its own group (.dev) and never touches a released app's connections.
+    OA_DB_GROUP: 47QC6LXXDZ.com.openasy.db
+    # Local builds: Xcode does not sign; scripts/adhoc-sign.sh signs ad hoc with the entitlements (Xcode will not put
+    # an app group into a signature without a provisioning profile). A Developer ID build overrides both:
+    # CODE_SIGNING_ALLOWED=YES OA_ADHOC_SIGN=NO (README, Release).
+    CODE_SIGNING_ALLOWED: NO
+    OA_ADHOC_SIGN: YES
+    OA_ADHOC_ENTITLEMENTS: DatabaseClient/DatabaseClient.entitlements
+    # No separate debug dylib: with an ad-hoc signature the hardened runtime refuses a library without a team id
+    ENABLE_DEBUG_DYLIB: NO
+targets:
+  DatabaseClient:
+    type: application
+    platform: macOS
+    sources:
+      - path: DatabaseClient/Sources
+      - path: DatabaseClient/Resources/i18n
+        type: folder
+        buildPhase: resources
+      - path: DatabaseClient/Resources/Assets.xcassets
+    dependencies:
+      - package: OpenAsyMacKit
+        product: OpenAsyMacKit
+    postBuildScripts:
+      - name: Ad-hoc signature (local)
+        script: scripts/adhoc-sign.sh
+        basedOnDependencyAnalysis: false
+    # App sandbox. XcodeGen writes the entitlements file from these properties.
+    #   network.client: connections to the user's own database and SSH servers (nothing listens: no network.server)
+    #   files.user-selected.read-write: SQLite files, .sql, CSV / JSON, SSH keys, certificate authorities the user picks
+    #   files.bookmarks.app-scope: the last SQLite file and key file open again after a restart
+    #   print: printing results
+    #   application-groups: the shared connection list (connections.json in the group container; OpenAsy Schema reads
+    #     and writes it too)
+    #   keychain-access-groups: shared passwords (data protection keychain, same group). This entitlement needs a
+    #     provisioning profile: macOS does not open an ad-hoc signed app that carries it, so the debug build signs with
+    #     DatabaseClient-Debug.entitlements (keychain without a group).
+    entitlements:
+      path: DatabaseClient/DatabaseClient.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.security.files.user-selected.read-write: true
+        com.apple.security.files.bookmarks.app-scope: true
+        com.apple.security.print: true
+        com.apple.security.application-groups: [$(OA_DB_GROUP)]
+        keychain-access-groups: [$(OA_DB_GROUP)]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.openasy.database-client
+        PRODUCT_NAME: OpenAsy Database Client
+        PRODUCT_MODULE_NAME: DatabaseClient
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: "-"
+        COMBINE_HIDPI_IMAGES: YES
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
+        INFOPLIST_KEY_NSHumanReadableCopyright: "OpenAsy, AGPL-3.0"
+      configs:
+        # The debug build runs in its own container and never touches a released app's data
+        Debug:
+          PRODUCT_BUNDLE_IDENTIFIER: com.openasy.database-client.dev
+          OA_DB_GROUP: 47QC6LXXDZ.com.openasy.db.dev
+          OA_ADHOC_ENTITLEMENTS: DatabaseClient/DatabaseClient-Debug.entitlements
+    info:
+      path: DatabaseClient/Info.plist
+      properties:
+        CFBundleDisplayName: OpenAsy Database Client
+        CFBundleName: OpenAsy Database Client
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, tr, de, es, fr, pt-BR, it, nl, ru, ja, ko]
+        LSApplicationCategoryType: public.app-category.developer-tools
+        LSMinimumSystemVersion: "14.0"
+        ITSAppUsesNonExemptEncryption: false
+        NSHumanReadableCopyright: "OpenAsy, AGPL-3.0"
+        # The group of the shared connection list (ConnectionStore reads it; the same setting as the entitlement)
+        OADBAppGroup: $(OA_DB_GROUP)
+        # From OpenAsy Schema: openasy-database-client://open?conn=<id>&table=..., query?conn=<id>&file=...
+        CFBundleURLTypes:
+          - CFBundleURLName: com.openasy.database-client
+            CFBundleTypeRole: Viewer
+            CFBundleURLSchemes: [openasy-database-client]
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: SQLite Database
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Alternate
+            LSItemContentTypes: [com.openasy.sqlite]
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: com.openasy.sqlite
+            UTTypeDescription: SQLite Database
+            UTTypeConformsTo: [public.data, public.database]
+            UTTypeTagSpecification:
+              public.filename-extension: [sqlite, sqlite3, db, db3]
+              public.mime-type: [application/vnd.sqlite3]
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: com.openasy.database-client-backup
+            UTTypeDescription: OpenAsy Database Client Backup
+            UTTypeConformsTo: [public.zip-archive]
+            UTTypeTagSpecification:
+              public.filename-extension: [database-client-backup]
+  DatabaseClientTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: [DatabaseClientTests]
+    dependencies:
+      - target: DatabaseClient
+    postBuildScripts:
+      - name: Sign the test host (local)
+        script: scripts/adhoc-sign.sh
+        basedOnDependencyAnalysis: false
+    settings:
+      base:
+        BUNDLE_LOADER: $(TEST_HOST)
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/OpenAsy Database Client.app/Contents/MacOS/OpenAsy Database Client"
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_ALLOWED: YES
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.openasy.database-client.tests
+schemes:
+  DatabaseClient:
+    build:
+      targets:
+        DatabaseClient: all
+        DatabaseClientTests: [test]
+    test:
+      targets: [DatabaseClientTests]

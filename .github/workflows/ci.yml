@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      # The app and macos-kit side by side: project.yml links the kit by the path ../macos-kit.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: database-client
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: openasy/macos-kit
+          path: macos-kit
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Check the texts
+        run: python3 database-client/tools/check-strings.py
+
+      - name: Build and test
+        working-directory: database-client
+        env:
+          DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+        run: |
+          xcodegen generate
+          xcodebuild test -project DatabaseClient.xcodeproj -scheme DatabaseClient \
+            -destination 'platform=macOS,arch=arm64' -derivedDataPath build/dd
+
+      - name: Release build (unsigned)
+        working-directory: database-client
+        env:
+          DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+        run: scripts/build.sh
